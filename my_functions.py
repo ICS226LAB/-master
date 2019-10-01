@@ -11,9 +11,10 @@ def f_recvData(sock, BUF_SIZE):   # Socket instance, buffer size
  recvData = b''
  while True:
   oneChar = sock.recv(BUF_SIZE)   # Receive as the buffer size
-  if oneChar == b"\n":            # Store data until new line appear
+  if len(oneChar) > 0:            # Store data until new line appear
+   recvData += oneChar
+  else:
    break
-  recvData += oneChar
  return recvData
 
 ### Binary data send
