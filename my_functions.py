@@ -67,3 +67,14 @@ def convert_num_to_position(num):
  # Function: convert 2 dimension info to num
 def convert_position_to_num(position):  
  return (position[0] * COLS) + (position[1] + 1)
+
+ # find current player location 
+def f_find_player_loc(screen, player, rows, cols): 
+  location = []
+  for row in range(rows):
+     for col in range(cols):
+        if screen[row][col] == player:
+           location.append(row)
+           location.append(col) 
+           return location 
+  return -1
