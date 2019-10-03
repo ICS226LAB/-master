@@ -24,7 +24,7 @@ if len(sys.argv) != 2:   # Arguments should be 2
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)   # TCP socket
 sock.connect((HOST, PORT))                                 # Connect using IP and Port
-print('Client:', sock.getsockname())
+#print('Client:', sock.getsockname())
 data = sys.argv[1].encode('utf-8') + b'\n'                 # Send the file name to be downloaded
 sock.sendall(data)     
 move = -1
@@ -64,6 +64,7 @@ def main(stdscr):
 while True:       # continue until game ends
  screen = ''
  data = sock.recv(BUF_SIZE)        # Receive current state
+ 
  screen = pickle.loads(data)  
  curses.wrapper(main) 
 
