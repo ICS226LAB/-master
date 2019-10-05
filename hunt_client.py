@@ -9,6 +9,7 @@ from my_functions import f_draw_screen
 import pickle
 import struct
 from my_functions import f_find_player_loc
+import time
 
 BUF_SIZE = 8192           # Buffer size for transfer
 HOST = '127.0.0.1'        # Target server IP
@@ -24,30 +25,33 @@ if len(sys.argv) != 2:   # Arguments should be 2
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)   # TCP socket
 sock.connect((HOST, PORT))                                 # Connect using IP and Port
-#print('Client:', sock.getsockname())
-data = sys.argv[1].encode('utf-8') + b'\n'                 # Send the file name to be downloaded
-sock.sendall(data)     
-move = -1
 
-def main(stdscr):
+data = sys.argv[1].encode('utf-8') + b'\n'                 # Send the file name to be downloaded
+sock.sendall(data)  
+sign = f_recvData(sock, 1).decode('utf-8')  
+move = -1
+print(sys.argv[1] + '! Your sign is ' + sign)
+time.sleep(1)
+
+def main(stdscr): 
  stdscr.clear()  
  f_draw_screen(ROWS, COLS, screen, stdscr)
  while True:   # input until valid key 
   move = stdscr.getch()   # down(258), up(259), left(260), right(261)
-  player_loc = f_find_player_loc(screen, 'X', ROWS, COLS) 
+  player_loc = f_find_player_loc(screen, sign, ROWS, COLS) 
   # player_loc[0] -> row, player_loc[1] -> col
-  if ((move == 261) and (player_loc[1] == COLS-1)): # right
+  if ((move == 261) and (player_loc[1] == COLS-1)): # right: block out of range
     continue
-  elif (move == 260) and (player_loc[1] == 0): # left
+  elif (move == 260) and (player_loc[1] == 0): # left: block out of range
     continue
-  elif (move == 259) and (player_loc[0] == 0): # up
+  elif (move == 259) and (player_loc[0] == 0): # up: block out of range
     continue
-  elif (move == 258) and (player_loc[0] == ROWS-1): # down
+  elif (move == 258) and (player_loc[0] == ROWS-1): # down: block out of range
     continue
   else:  # check the other player doesn't exist 
     if move == 261: # right(261)  dup with hunt_server.py
       player_loc[1] += 1  # col change if need
-    elif move == 260: # left(260)
+    elif move == 260: # left(260) 
      player_loc[1] -= 1   # col change if need
     elif move == 259: # up(259) 
      player_loc[0] -= 1   # row change if need 
@@ -55,18 +59,30 @@ def main(stdscr):
      player_loc[0] += 1   # row change if need 
 
     if (screen[player_loc[0]][player_loc[1]] != '~') and (screen[player_loc[0]][player_loc[1]] != '$'):
-        continue
-    else: 
+        continue   # block invalid movement
+    else:    # send movement info, if it is valid
         result = sock.send(struct.pack('!h',move) + b'\n') 
-        break
- #key = stdscr.getkey()
+        #f_draw_screen(ROWS, COLS, screen, stdscr)
+        break 
  
 while True:       # continue until game ends
  screen = ''
- data = sock.recv(BUF_SIZE)        # Receive current state
+# buffer1 = sock.recv(BUF_SIZE)
+# state = pickle.loads(buffer1)V
+ buffer2 = sock.recv(BUF_SIZE)        # Receive current stateCV
  
- screen = pickle.loads(data)  
+ screen = pickle.loads(buffer2)    
+ #print(screen[0])
+ if screen[0] == '0': 
+   print('\nPlayer1: ' + screen[1] + '\n' + 'Player2: ' + screen[2])
+   if screen[1] > screen[2]:
+      print('Player 1' + ' won!')
+   elif screen[1] < screen[2]:
+      print('Player 2' ' won!')
+   else:
+      print('Draw Game!')
+   break
+ 
  curses.wrapper(main) 
-
 
 sock.close()                                                   # Termination
