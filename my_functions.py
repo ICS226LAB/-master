@@ -2,9 +2,10 @@
 from os import path
 import os
 import curses
+import pickle
 import random
-ROWS = 10
-COLS = 20
+ROWS = 5
+COLS = 10
 
 ### Data receive function with new line
 def f_recvData(sock, BUF_SIZE):   # Socket instance, buffer size
@@ -78,3 +79,30 @@ def f_find_player_loc(screen, player, rows, cols):
            location.append(col) 
            return location 
   return -1
+
+# Check the game is over on client
+def f_is_game_end(input):
+  print(input)
+  if input[0] == '0':
+    print('\nPlayer1: ' + input[1] + '\n' + 'Player2: ' + input[2])
+    if input[1] > input[2]:
+     print('Player 1' + ' won!')
+    elif input[1] < input[2]:
+     print('Player 2' ' won!')
+    else:
+     print('Draw Game!')
+    return True
+  return False
+
+# Check the game is over on server
+def f_is_game_end_server(sc, point1, point2, num_treasure):
+ if (point1 + point2) == num_treasure:  ## end? go end
+   state = []
+   state.append(str('0'))   # temp 0, should be accurate
+   state.append(str(point1))
+   state.append(str(point2))  
+   state_string = pickle.dumps(state)
+   sc.send(state_string) 
+   return 1
+ else:  
+   return 0

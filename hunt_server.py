@@ -11,6 +11,7 @@ from my_functions import gen_random_number
 from my_functions import convert_num_to_position
 from my_functions import convert_position_to_num
 from my_functions import f_find_player_loc
+from my_functions import f_is_game_end_server
 import pickle
 import struct
 import threading
@@ -21,9 +22,9 @@ import threading
 BUF_SIZE = 8192                          # Receive size 
 HOST = ''                                # All IPs are allowed to connect
 PORT = 65432                             # Port for communication
-ROWS = 10
-COLS = 20
-NUM_TREASURE = 10
+ROWS = 5
+COLS = 10
+NUM_TREASURE = 1
 
 screen = [['~'] * COLS for _ in range(ROWS) ]
 screen[0][0] = 'X'                         # reset the first screen 
@@ -50,6 +51,8 @@ locks = []
 for i in range(2):
  locks.append(threading.Semaphore())   # create a single-marble semaphore
  locks[-1].acquire()                   # acquire each of marbles
+
+
 ##############################################################################
 def contactPlayer(player_id):  
  sc, sockname = sock.accept()
@@ -61,36 +64,21 @@ def contactPlayer(player_id):
  p.name = f_recvData(sc, 1).decode('utf-8')  # player name 
  sc.sendall(p.sign.encode('utf-8') + b'\n') 
  remain_treasure = NUM_TREASURE
+
+ screen_string = pickle.dumps(screen)   # convert current state to binary
+ sc.send(screen_string)                 # send screen state 
+
  while True:   
-  locks[player_id].acquire()####################### each tries to acquire the marble => SWITCH STEP 1
-  if (p1.point + p2.point) == NUM_TREASURE:  ## end? go end
-    state = []
-    state.append(str('0'))   # temp 0, should be accurate
-    state.append(str(p1.point))
-    state.append(str(p2.point)) 
-    state_string = pickle.dumps(state)
-    sc.send(state_string) 
+  if f_is_game_end_server(sc, p1.point, p2.point, NUM_TREASURE):
     break
-  
+  ######@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  locks[player_id].acquire()####################### each tries to acquire the marble => SWITCH STEP 1
+  if f_is_game_end_server(sc, p1.point, p2.point, NUM_TREASURE):
+    break
+  #111111111111111111111111
   screen_string = pickle.dumps(screen)   # convert current state to binary
   sc.send(screen_string)                 # send screen state
-  #if (p1.point + p2.point) == NUM_TREASURE:
-    #print('>>>> Game Over <<<< \n' + p1.name + ': ' + str(p1.point) + '\n' + p2.name + ': ' + str(p2.point) )
-    #if p1.point > p2.point:
-      #print(p1.name + ' won!')
-    #elif p1.point < p2.point:
-      #print(p2.name + ' won!')
-    #else:
-      #print('Draw Game!')
-    
-    #state = []
-    #state.append(str('0'))   # temp 0, should be accurate
-    #state.append(str(p1.point))
-    #state.append(str(p2.point)) 
-    #state_string = pickle.dumps(state)
-    #sc.send(state_string) 
-    #print(state) 
-  
+   
   move = struct.unpack('!h',f_recvData(sc, 1))[0]   # receive movement ##### very import!!!
      #print(move) # down(258), up(259), left(260), right(261)
   p.loc = f_find_player_loc(screen, p.sign, ROWS, COLS)  # return row, col of player
@@ -111,26 +99,16 @@ def contactPlayer(player_id):
    print(p.name + ' points: ' + str(p.point)) 
    ###>>>  End the Game to Clients!!!
    if (p1.point + p2.point) == NUM_TREASURE:
-    print('>>>> Game Over <<<< \n' + p1.name + ': ' + str(p1.point) + '\n' + p2.name + ': ' + str(p2.point) )
-    if p1.point > p2.point:
-      print(p1.name + ' won!')
-    elif p1.point < p2.point:
-      print(p2.name + ' won!')
-    else:
-      print('Draw Game!')
-    
-    state = []
-    state.append(str(remain_treasure))   # temp 0, should be accurate
-    state.append(str(p1.point))
-    state.append(str(p2.point)) 
-    state_string = pickle.dumps(state)
-    sc.send(state_string)  
-    
+    print('>>>> Game Over <<<<')
    ###<<<
   screen[p.loc[0]][p.loc[1]] = p.sign
+  # 222222222222222222222222222222222
+  screen_string = pickle.dumps(screen)   # convert current state to binary
+  sc.send(screen_string)                 # send screen state 
 
   ### $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
   locks[(player_id + 1) % 2].release()  # release other's marble  => SWITCH SETP 2
+
 ##############################################################################
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)     # TCP socket

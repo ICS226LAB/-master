@@ -9,13 +9,14 @@ from my_functions import f_draw_screen
 import pickle
 import struct
 from my_functions import f_find_player_loc
+from my_functions import f_is_game_end 
 import time
 
 BUF_SIZE = 8192           # Buffer size for transfer
 HOST = '127.0.0.1'        # Target server IP
 PORT = 65432              # Port for transfer
-ROWS = 10
-COLS = 20
+ROWS = 5
+COLS = 10
 g_key = -1
 player_loc = []
 
@@ -64,25 +65,16 @@ def main(stdscr):
         result = sock.send(struct.pack('!h',move) + b'\n') 
         #f_draw_screen(ROWS, COLS, screen, stdscr)
         break 
- 
+
 while True:       # continue until game ends
- screen = ''
-# buffer1 = sock.recv(BUF_SIZE)
-# state = pickle.loads(buffer1)V
- buffer2 = sock.recv(BUF_SIZE)        # Receive current stateCV
- 
- screen = pickle.loads(buffer2)    
- #print(screen[0])
- if screen[0] == '0': 
-   print('\nPlayer1: ' + screen[1] + '\n' + 'Player2: ' + screen[2])
-   if screen[1] > screen[2]:
-      print('Player 1' + ' won!')
-   elif screen[1] < screen[2]:
-      print('Player 2' ' won!')
-   else:
-      print('Draw Game!')
-   break
- 
+ screen = '' 
+ buffer = sock.recv(BUF_SIZE)        # Receive current stateCV
+ screen = pickle.loads(buffer)    
+ if f_is_game_end(screen):
+   break 
  curses.wrapper(main) 
 
+ buffer = sock.recv(BUF_SIZE)        # Receive current stateCV
+ screen = pickle.loads(buffer)   
+ curses.wrapper(main)
 sock.close()                                                   # Termination
