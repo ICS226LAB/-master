@@ -1,9 +1,10 @@
 #!/usr/bin/python3
-from os import path
+
 import os
 import curses
 import pickle
 import random
+from os import path
 ROWS = 5
 COLS = 10
 
@@ -81,8 +82,7 @@ def f_find_player_loc(screen, player, rows, cols):
   return -1
 
 # Check the game is over on client
-def f_is_game_end(input):
-  print(input)
+def f_is_game_end(input): 
   if input[0] == '0':
     print('\nPlayer1: ' + input[1] + '\n' + 'Player2: ' + input[2])
     if input[1] > input[2]:
@@ -106,3 +106,15 @@ def f_is_game_end_server(sc, point1, point2, num_treasure):
    return 1
  else:  
    return 0
+
+# Update plyaer's location
+def update_loc(player_loc, move):
+  if move == 261: # right(261)  dup with hunt_server.py
+    player_loc[1] += 1  # col change if needs
+  elif move == 260: # left(260) 
+    player_loc[1] -= 1   # col change if need
+  elif move == 259: # up(259) 
+    player_loc[0] -= 1   # row change if need 
+  elif move == 258: # down(258) 
+    player_loc[0] += 1   # row change if need
+  return player_loc  

@@ -2,8 +2,11 @@
 
 import curses
 import os
-from os import path
+import pickle
+import struct
+import threading
 import socket
+from os import path
 from my_functions import f_sendBinary  # import function for sending binary data
 from my_functions import f_recvData    # import function for receiving file name
 from my_functions import f_draw_screen
@@ -12,9 +15,7 @@ from my_functions import convert_num_to_position
 from my_functions import convert_position_to_num
 from my_functions import f_find_player_loc
 from my_functions import f_is_game_end_server
-import pickle
-import struct
-import threading
+from my_functions import update_loc
 
 ###########################
 # Initialize the game
@@ -46,15 +47,14 @@ class Player:
 p1 = Player(0, 0, 'X',[0,0],'')
 p2 = Player(1, 0, 'Y',[ROWS-1,COLS-1],'')   
 
-# Thread >> ##########################
 locks = []                
 for i in range(2):
  locks.append(threading.Semaphore())   # create a single-marble semaphore
  locks[-1].acquire()                   # acquire each of marbles
+ 
 
-
-##############################################################################
-def contactPlayer(player_id):  
+def contactPlayer(player_id, stdscr, sock): 
+ 
  sc, sockname = sock.accept()
  print('Client:', sc.getpeername())
  if player_id == 0:
@@ -65,62 +65,53 @@ def contactPlayer(player_id):
  sc.sendall(p.sign.encode('utf-8') + b'\n') 
  remain_treasure = NUM_TREASURE
 
- screen_string = pickle.dumps(screen)   # convert current state to binary
- sc.send(screen_string)                 # send screen state 
-
- while True:   
+ screen_string = pickle.dumps(screen)   # 111111 convert current state to binary
+ sc.send(screen_string)                 # 111111 send screen state 
+  
+ #f_draw_screen(ROWS, COLS, screen, stdscr) 
+ while True:      
+  screen_string = pickle.dumps(screen)   # SSSSSS convert current state to binary
+  sc.send(screen_string)                 # SSSSSS send screen state 
+  locks[player_id].acquire()   # each tries to acquire the marble => SWITCH STEP 1
+  
   if f_is_game_end_server(sc, p1.point, p2.point, NUM_TREASURE):
-    break
-  ######@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-  locks[player_id].acquire()####################### each tries to acquire the marble => SWITCH STEP 1
-  if f_is_game_end_server(sc, p1.point, p2.point, NUM_TREASURE):
-    break
-  #111111111111111111111111
-  screen_string = pickle.dumps(screen)   # convert current state to binary
-  sc.send(screen_string)                 # send screen state
-   
-  move = struct.unpack('!h',f_recvData(sc, 1))[0]   # receive movement ##### very import!!!
-     #print(move) # down(258), up(259), left(260), right(261)
+    break    
+  move = struct.unpack('!h',f_recvData(sc, 1))[0]   # RRRRRRR receive movement 
   p.loc = f_find_player_loc(screen, p.sign, ROWS, COLS)  # return row, col of player
   screen[p.loc[0]][p.loc[1]] = '~' # current set to '~'
-
-  if move == 261: # right(261)  
-   p.loc[1] += 1  # col change if need
-  elif move == 260: # left(260)
-   p.loc[1] -= 1   # col change if need
-  elif move == 259: # up(259) 
-   p.loc[0] -= 1   # row change if need 
-  elif move == 258: # down(258) 
-   p.loc[0] += 1   # row change if need 
-
+  update_loc(p.loc, move) 
   if screen[p.loc[0]][p.loc[1]] == '$':
    p.point += 1 
-   remain_treasure -= 1 
-   print(p.name + ' points: ' + str(p.point)) 
-   ###>>>  End the Game to Clients!!!
-   if (p1.point + p2.point) == NUM_TREASURE:
-    print('>>>> Game Over <<<<')
-   ###<<<
-  screen[p.loc[0]][p.loc[1]] = p.sign
-  # 222222222222222222222222222222222
-  screen_string = pickle.dumps(screen)   # convert current state to binary
-  sc.send(screen_string)                 # send screen state 
-
-  ### $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
-  locks[(player_id + 1) % 2].release()  # release other's marble  => SWITCH SETP 2
-
-##############################################################################
-
-sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)     # TCP socket
-sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)   # Provide an application program; socket layer, reuse port anyway
-sock.bind((HOST, PORT))                                      # Designated IP and Port are used for connection
-sock.listen(2)        #!!!!!!!! 2 connection is allowed at a time
-print('Server:', sock.getsockname())
-
-num_players = 0
-while num_players !=2:     # will execute 2 times, exit
- threading.Thread(target = contactPlayer, args = (num_players,)).start()   # create a thread for each
- num_players = num_players + 1
-locks[0].release()    # Start first one: Release the first marble to the 1st player 
+   remain_treasure -= 1  
+   if remain_treasure == 0:    # USE REMAIN COUNT
+    print('>>>> Game Over <<<<') 
+    f_is_game_end_server(sc, p1.point, p2.point, NUM_TREASURE)
+  screen[p.loc[0]][p.loc[1]] = p.sign 
+    
+  screen_string = pickle.dumps(screen)   # SSSSSS convert current state to binary
+  sc.send(screen_string)                 # SSSSSS send screen state 
  
+  stdscr.clear()
+  f_draw_screen(ROWS, COLS, screen, stdscr)  
+  stdscr.refresh()
+
+  locks[(player_id + 1) % 2].release()  # release other's marble  => SWITCH SETP 2
+  screen_string = pickle.dumps(screen)   # SSSSSS convert current state to binary
+  sc.send(screen_string)                 # SSSSSS send screen state 
+ #### >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
+
+def main(stdscr):
+ sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)     # TCP socket
+ sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)   # Provide an application program; socket layer, reuse port anyway
+ sock.bind((HOST, PORT))                                      # Designated IP and Port are used for connection
+ sock.listen(2)        #!!!!!!!! 2 connection is allowed at a time
+ print('Server:', sock.getsockname())
+
+ num_players = 0
+ while num_players !=2:     # will execute 2 times, exit
+  threading.Thread(target = contactPlayer, args = (num_players, stdscr, sock, )).start()   # create a thread for each
+  num_players = num_players + 1
+ locks[0].release()    # Start first one: Release the first marble to the 1st player 
+ 
+curses.wrapper(main)  
 
