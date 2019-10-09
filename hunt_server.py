@@ -23,9 +23,9 @@ from my_functions import update_loc
 BUF_SIZE = 8192                          # Receive size 
 HOST = ''                                # All IPs are allowed to connect
 PORT = 65432                             # Port for communication
-ROWS = 5
-COLS = 10
-NUM_TREASURE = 3
+ROWS = 10
+COLS = 20
+NUM_TREASURE = 10
 
 screen = [['~'] * COLS for _ in range(ROWS) ]
 screen[0][0] = 'X'                # player X position

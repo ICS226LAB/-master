@@ -18,8 +18,8 @@ from my_functions import update_loc
 BUF_SIZE = 8192           # Buffer size for transfer
 HOST = '127.0.0.1'        # Target server IP
 PORT = 65432              # Port for transfer
-ROWS = 5
-COLS = 10
+ROWS = 10
+COLS = 20
 g_key = -1
 player_loc = []
 
@@ -42,9 +42,8 @@ def main(stdscr):
    buffer = sock.recv(BUF_SIZE)        # Receive current stateCV
    if (buffer):
     screen = pickle.loads(buffer)
-    if f_is_game_end(screen, stdscr):  # Check if found winner
-      stdscr.getch()  # Wait until a key is pressed to stop the game
-      break
+   else:
+    break  # stop the game
 
    if f_is_game_end(screen, stdscr):  # Check if found winner
     stdscr.getch()  # Wait until a key is pressed to stop the game
