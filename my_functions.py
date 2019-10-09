@@ -1,20 +1,21 @@
 #!/usr/bin/python3
-from os import path
+
 import os
 import curses
+import pickle
 import random
-ROWS = 10
-COLS = 20
+from os import path
+ROWS = 5
+COLS = 10
 
 ### Data receive function with new line
 def f_recvData(sock, BUF_SIZE):   # Socket instance, buffer size
  recvData = b''
  while True:
   oneChar = sock.recv(BUF_SIZE)   # Receive as the buffer size
-  if len(oneChar) > 0:            # Store data until new line appear
-   recvData += oneChar
-  else:
+  if oneChar == b"\n":            # Store data until new line appear
    break
+  recvData += oneChar
  return recvData
 
 ### Binary data send
@@ -68,3 +69,55 @@ def convert_num_to_position(num):
  # Function: convert 2 dimension info to num
 def convert_position_to_num(position):  
  return (position[0] * COLS) + (position[1] + 1)
+
+ # find current player location 
+def f_find_player_loc(screen, player, rows, cols): 
+  location = []
+  for row in range(rows):
+     for col in range(cols):
+        if screen[row][col] == player:
+           location.append(row)
+           location.append(col) 
+           return location 
+  return -1
+
+# Check the game is over on client
+def f_is_game_end(input, stdscr):
+  if input[0] == '0':
+    result = '\nPlayer1: ' + input[1] + '\n' + 'Player2: ' + input[2]
+    if input[1] > input[2]:
+     result = 'Player 1' + ' won!'
+    elif input[1] < input[2]:
+     result = 'Player 2' + ' won!'
+    else:
+     result = 'Draw Game!'
+    stdscr.clear()
+    stdscr.addstr(0, 0, result)
+
+    return True
+  return False
+
+# Check the game is over on server
+def f_is_game_end_server(sc, point1, point2, num_treasure):
+ if (point1 + point2) == num_treasure:  ## end? go end
+   state = []
+   state.append(str('0'))   # temp 0, should be accurate
+   state.append(str(point1))
+   state.append(str(point2))  
+   state_string = pickle.dumps(state)
+   sc.send(state_string) 
+   return 1
+ else:  
+   return 0
+
+# Update plyaer's location
+def update_loc(player_loc, move):
+  if move == 261: # right(261)  dup with hunt_server.py
+    player_loc[1] += 1  # col change if needs
+  elif move == 260: # left(260) 
+    player_loc[1] -= 1   # col change if need
+  elif move == 259: # up(259) 
+    player_loc[0] -= 1   # row change if need 
+  elif move == 258: # down(258) 
+    player_loc[0] += 1   # row change if need
+  return player_loc  
