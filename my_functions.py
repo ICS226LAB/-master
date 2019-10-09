@@ -106,9 +106,9 @@ def f_is_game_end_server(sc, point1, point2, num_treasure):
    state.append(str(point2))  
    state_string = pickle.dumps(state)
    sc.send(state_string) 
-   return 1
+   return True
  else:  
-   return 0
+   return False
 
 # Update plyaer's location
 def update_loc(player_loc, move):

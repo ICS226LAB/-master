@@ -38,37 +38,30 @@ print(sys.argv[1] + '! Your sign is ' + sign)
 time.sleep(1) 
 
 def main(stdscr):   
- #uffer = sock.recv(BUF_SIZE)        # Receive current stateCV
- #screen = pickle.loads(buffer)   
- #stdscr.clear()  
- #f_draw_screen(ROWS, COLS, screen, stdscr)  
- 
  while True:   # input until valid key        
-   #if sign == 'X':
-   # receive the turn 2) send well received >>>>> 
    buffer = sock.recv(BUF_SIZE)        # Receive current stateCV
-   screen = pickle.loads(buffer)
+   if (buffer):
+    screen = pickle.loads(buffer)
+    if f_is_game_end(screen, stdscr):  # Check if found winner
+      stdscr.getch()  # Wait until a key is pressed to stop the game
+      break
 
-   if f_is_game_end(screen, stdscr):
-    stdscr.getch()
+   if f_is_game_end(screen, stdscr):  # Check if found winner
+    stdscr.getch()  # Wait until a key is pressed to stop the game
     break
   
-   turn = screen[ROWS][0]
+   turn = screen[ROWS][0]  # Decide player's turn
    
-   stdscr.clear()
-   f_draw_screen(ROWS, COLS, screen, stdscr)
-   stdscr.refresh()
+   stdscr.clear()  # Clear the old screen
+   f_draw_screen(ROWS, COLS, screen, stdscr)  # Print the new screen
+   stdscr.refresh()   # Refresh screen
 
-
-   #print(' here3' + sign)   
-   #print(' current turn: ' + turn) 
    if sign == turn:
-      #print('here4 ' + sign)
     while True:
-      curses.flushinp()
+      curses.flushinp()  # Flush all acidental key press
       move = stdscr.getch()   # down(258), up(259), left(260), right(261)
       player_loc = f_find_player_loc(screen, sign, ROWS, COLS)  
-      # player_loc[0] -> row, player_loc[1] -> col
+
       if ((move == 261) and (player_loc[1] == COLS-1)): # right: block out of range
         continue
       elif (move == 260) and (player_loc[1] == 0): # left: block out of range
@@ -84,14 +77,7 @@ def main(stdscr):
         else:    # send movement info, if it is valid
           result = sock.send(struct.pack('!h',move) + b'\n') 
           break
-
-#while True:       # continue until game ends  
-  #screen = '' 
-  #buffer = sock.recv(BUF_SIZE)        # Receive current stateCV
-  #screen = pickle.loads(buffer)   
-  #if f_is_game_end(screen):
-   #break  
  
 curses.wrapper(main)    
 
-sock.close()                                                   # Termination
+sock.close()  # Termination
