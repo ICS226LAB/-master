@@ -44,30 +44,37 @@ def main(stdscr):
  
  while True:   # input until valid key        
    #if sign == 'X':
-   # receive the turn >>>>>
+   # receive the turn 2) send well received >>>>> 
    buffer = sock.recv(BUF_SIZE)        # Receive current stateCV
    screen = pickle.loads(buffer)   
-   stdscr.clear()  
+   if f_is_game_end(screen):
+    break  
+   turn = screen[ROWS][0]
+   stdscr.clear()   
    f_draw_screen(ROWS, COLS, screen, stdscr)  
-
-   move = stdscr.getch()   # down(258), up(259), left(260), right(261)
-   player_loc = f_find_player_loc(screen, sign, ROWS, COLS)  
-   # player_loc[0] -> row, player_loc[1] -> col
-   if ((move == 261) and (player_loc[1] == COLS-1)): # right: block out of range
-     continue
-   elif (move == 260) and (player_loc[1] == 0): # left: block out of range
-     continue
-   elif (move == 259) and (player_loc[0] == 0): # up: block out of range
-     continue
-   elif (move == 258) and (player_loc[0] == ROWS-1): # down: block out of range
-     continue
-   else:  # check the other player doesn't exist 
-     update_loc(player_loc, move)
-     if (screen[player_loc[0]][player_loc[1]] != '~') and (screen[player_loc[0]][player_loc[1]] != '$'):
-         continue   # block invalid movement
-     else:    # send movement info, if it is valid
-         result = sock.send(struct.pack('!h',move) + b'\n') 
-         #break 
+   stdscr.refresh()
+   #print(' here3' + sign)   
+   #print(' current turn: ' + turn) 
+   if sign == turn:
+      #print('here4 ' + sign)
+      move = stdscr.getch()   # down(258), up(259), left(260), right(261)
+      player_loc = f_find_player_loc(screen, sign, ROWS, COLS)  
+      # player_loc[0] -> row, player_loc[1] -> col
+      if ((move == 261) and (player_loc[1] == COLS-1)): # right: block out of range
+        continue
+      elif (move == 260) and (player_loc[1] == 0): # left: block out of range
+        continue
+      elif (move == 259) and (player_loc[0] == 0): # up: block out of range
+        continue
+      elif (move == 258) and (player_loc[0] == ROWS-1): # down: block out of range
+        continue
+      else:  # check the other player doesn't exist 
+        update_loc(player_loc, move)
+        if (screen[player_loc[0]][player_loc[1]] != '~') and (screen[player_loc[0]][player_loc[1]] != '$'):
+            continue   # block invalid movement
+        else:    # send movement info, if it is valid
+            result = sock.send(struct.pack('!h',move) + b'\n') 
+            #break 
 
 #while True:       # continue until game ends  
   #screen = '' 
@@ -75,7 +82,7 @@ def main(stdscr):
   #screen = pickle.loads(buffer)   
   #if f_is_game_end(screen):
    #break  
-
+ 
 curses.wrapper(main)    
 
 sock.close()                                                   # Termination

@@ -29,7 +29,8 @@ NUM_TREASURE = 1
 
 screen = [['~'] * COLS for _ in range(ROWS) ]
 screen[0][0] = 'X'                         # reset the first screen 
-screen[ROWS-1][COLS-1] = 'Y'  
+screen[ROWS-1][COLS-1] = 'Y'   
+screen.append('X')  # turn starts X player
 
 for i in gen_random_number(NUM_TREASURE):  # initialize the treasures
  row = convert_num_to_position(i)[0] 
@@ -64,19 +65,25 @@ def contactPlayer(player_id, stdscr, sock):
  p.name = f_recvData(sc, 1).decode('utf-8')  # player name 
  sc.sendall(p.sign.encode('utf-8') + b'\n') 
  remain_treasure = NUM_TREASURE
-
- screen_string = pickle.dumps(screen)   # 111111 convert current state to binary
- sc.send(screen_string)                 # 111111 send screen state 
+  
+ #print(str(screen[ROWS][0]))
+ screen_string = pickle.dumps(screen)   # SSSSSS convert current state to binary
+ sc.send(screen_string)                 # SSSSSS send screen state 
   
  #f_draw_screen(ROWS, COLS, screen, stdscr) 
- while True:      
-  screen_string = pickle.dumps(screen)   # SSSSSS convert current state to binary
-  sc.send(screen_string)                 # SSSSSS send screen state 
+ while True:    
+  ##### print('here333??? ' + str(sc.getpeername()))  
+  #screen_string = pickle.dumps(screen)   # SSSSSS convert current state to binary
+  #sc.send(screen_string)                 # SSSSSS send screen state 
   locks[player_id].acquire()   # each tries to acquire the marble => SWITCH STEP 1
-  
+  screen_string = pickle.dumps(screen)   # SSSSSS convert current state to binary
+  sc.send(screen_string)                 # SSSSSS send screen state
+  print('here4444??? ' + str(sc.getpeername()))  
   if f_is_game_end_server(sc, p1.point, p2.point, NUM_TREASURE):
-    break    
+    break   
+  print('here5555???' + str(sc.getpeername()))   
   move = struct.unpack('!h',f_recvData(sc, 1))[0]   # RRRRRRR receive movement 
+  print('here6666???' + str(sc.getpeername()))
   p.loc = f_find_player_loc(screen, p.sign, ROWS, COLS)  # return row, col of player
   screen[p.loc[0]][p.loc[1]] = '~' # current set to '~'
   update_loc(p.loc, move) 
@@ -86,16 +93,25 @@ def contactPlayer(player_id, stdscr, sock):
    if remain_treasure == 0:    # USE REMAIN COUNT
     print('>>>> Game Over <<<<') 
     f_is_game_end_server(sc, p1.point, p2.point, NUM_TREASURE)
-  screen[p.loc[0]][p.loc[1]] = p.sign 
-    
+  screen[p.loc[0]][p.loc[1]] = p.sign  
+  
+  if screen[ROWS][0] == 'X': 
+      screen.pop()
+      screen.append('Y') 
+  else: 
+      screen.pop()
+      screen.append('X') 
+
+  print(screen[ROWS][0])
   screen_string = pickle.dumps(screen)   # SSSSSS convert current state to binary
   sc.send(screen_string)                 # SSSSSS send screen state 
  
-  stdscr.clear()
-  f_draw_screen(ROWS, COLS, screen, stdscr)  
-  stdscr.refresh()
-
+  #stdscr.clear()
+  #f_draw_screen(ROWS, COLS, screen, stdscr)  
+  #stdscr.refresh()
+  print('here11??' + str(sc.getpeername()))
   locks[(player_id + 1) % 2].release()  # release other's marble  => SWITCH SETP 2
+  print('here22??' + str(sc.getpeername()))
   screen_string = pickle.dumps(screen)   # SSSSSS convert current state to binary
   sc.send(screen_string)                 # SSSSSS send screen state 
  #### >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
